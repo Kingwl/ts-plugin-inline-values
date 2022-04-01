@@ -1,0 +1,26 @@
+{
+  "name": "vscode-ts-inline-value",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kingwl/vscode-ts-inline-value.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Kingwl/vscode-ts-inline-value/issues"
+  },
+  "homepage": "https://github.com/Kingwl/vscode-ts-inline-value#readme",
+  "dependencies": {
+    "esbuild": "^0.14.29",
+    "typescript": "^4.6.3"
+  },
+  "devDependencies": {
+    "@types/ts-expose-internals": "npm:ts-expose-internals@4.5.5"
+  }
+}
