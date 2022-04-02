@@ -1,19 +1,23 @@
+import type * as ts from 'typescript/lib/tsserverlibrary'
+
 export const enum CommandTypes {
-    ProvideInlineValues = 'typescript/extra/provideInlineValues'
+    ProvideInlineValues = 'typescript/builtin/provideInlineValues'
 }
 
-export interface InlineValuesArgs extends ts.server.protocol.FileLocationRequestArgs {
+export interface InlineValuesArgs extends ts.server.protocol.FileRequestArgs {
     /**
-     * Start position of the span.
+     * Zero based position.
+     */
+    position: number;
+
+    /**
+     * Zero based position.
      */
     start: number;
-    /**
-     * Length of the span.
-     */
     length: number;
 }
 
-export interface InlineValuesRequest extends ts.server.protocol.Request {
+export interface InlineValuesRequest {
     command: CommandTypes.ProvideInlineValues;
     arguments: InlineValuesArgs;
 }
@@ -29,13 +33,15 @@ export const enum InlineValueType {
 
 export interface InlineValueVariableLookup {
     readonly type: InlineValueType.VariableLookup
-    readonly span: ts.server.protocol.TextSpan;
+    readonly start: number;
+    readonly length: number;
     readonly variableName: string;
 }
 
 export interface InlineValueEvaluatableExpression {
     readonly type: InlineValueType.EvaluatableExpression;
-    readonly span: ts.server.protocol.TextSpan;
+    readonly start: number;
+    readonly length: number;
     readonly expression: string;
 }
 

@@ -1,1 +1,1 @@
-# vscode-ts-inline-value
+# ts-plugin-inline-values

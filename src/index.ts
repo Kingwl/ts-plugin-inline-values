@@ -1,39 +1,51 @@
-import * as ts from 'typescript/lib/tsserverlibrary'
-import * as Proto from './proto'
-import { createInlineValuesProvider, InlineValuesContext } from './provider'
+import type * as ts from 'typescript/lib/tsserverlibrary'
+import { inlineValueToProtoInlineValue } from './convert'
+import * as proto from './proto'
+import { createInlineValuesProvider } from './provider'
+import * as types from './types'
+import { isDef } from './utils'
+
+type Worker = (req: proto.InlineValuesRequest) => proto.InlineValue[] | undefined;
 
 const factory: ts.server.PluginModuleFactory = (mod) => {
     return {
         create(info) {
             const provider = createInlineValuesProvider(mod.typescript);
 
-            info.session?.addProtocolHandler(Proto.CommandTypes.ProvideInlineValues, (request) => {
-                const req = request as Proto.InlineValuesRequest
-
-                const host = info.languageServiceHost;
-                
-                const program = info.languageService.getProgram()!
-                const file = program?.getSourceFile(req.arguments.file)!;
-
-                const position = file.getPositionOfLineAndCharacter(req.arguments.line, req.arguments.offset);
-
-                const context: InlineValuesContext = {
-                    program,
-                    file,
-                    host,
-                    position,
-                    span: ts.createTextSpan(
-                        req.arguments.start,
-                        req.arguments.length
-                    )
+            const getInlineValueContext = (args: proto.InlineValuesArgs): types.InlineValuesContext | undefined => {
+                const program = info.languageService.getProgram();
+                if (!isDef(program)) {
+                    return undefined
                 }
-                const results = provider(context)
+                const file = program.getSourceFile(args.file);
+                if (!isDef(file)) {
+                    return undefined
+                }
+
+                const position = args.position;
                 return {
-                    response: {
-                        body: results.map(item => {
-                            return item as Proto.InlineValue
-                        }) as Proto.InlineValue[]
-                    }
+                    file,
+                    program,
+                    position,
+                    span: args
+                }
+            }
+
+            const worker: Worker = (req) => {
+                const context = getInlineValueContext(req.arguments);
+                if (!context) {
+                    return undefined
+                }
+
+                const results = provider(context)
+                return results.map(item => inlineValueToProtoInlineValue(item))
+            }
+
+            info.session?.addProtocolHandler(proto.CommandTypes.ProvideInlineValues, (request) => {
+                const req = request as proto.InlineValuesRequest
+
+                return {
+                    response: worker(req)
                 }
             })
             return info.languageService

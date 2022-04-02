@@ -5,7 +5,9 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "declaration": true,
-        "emitDeclarationOnly": true
+        "emitDeclarationOnly": true,
+        "outDir": "dist",
+        "skipLibCheck": true
     },
     "include": [
         "src"

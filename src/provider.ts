@@ -1,6 +1,6 @@
-import type * as ts from 'typescript';
-import type * as tsserver from 'typescript/lib/tsserverlibrary';
-import { assert, assertTs } from './utils';
+import type * as ts from 'typescript/lib/tsserverlibrary';
+import * as types from './types';
+import { assert } from './utils';
 
 type ProvideableScope =
     ts.SourceFile |
@@ -21,36 +21,7 @@ type ProvideableScope =
 
 type AssignmentLikeExpression = ts.AssignmentExpression<ts.AssignmentOperatorToken> | ts.PrefixUnaryExpression | ts.PostfixUnaryExpression;
 
-export enum TSInlineValueType {
-    VariableLookup = "VariableLookup",
-    EvaluatableExpression = "EvaluatableExpression"
-}
-
-export interface TSInlineValueVariableLookup {
-    readonly type: TSInlineValueType.VariableLookup;
-    readonly span: ts.TextSpan;
-    readonly variableName: string;
-}
-
-export interface TSInlineValueEvaluatableExpression {
-    readonly type: TSInlineValueType.EvaluatableExpression;
-    readonly span: ts.TextSpan;
-    readonly expression: string;
-}
-
-export type TSInlineValue = TSInlineValueVariableLookup | TSInlineValueEvaluatableExpression;
-
-export interface InlineValuesContext {
-    file: tsserver.SourceFile;
-    position: number;
-    program: tsserver.Program;
-    span: ts.TextSpan;
-    host: tsserver.LanguageServiceHost;
-}
-
-export function createInlineValuesProvider (typescript: typeof ts | typeof tsserver) {
-    assertTs(typescript);
-
+export function createInlineValuesProvider (typescript: typeof ts) {
     /**
      * We think block is not a 'strong scope' because many statement/expression/etc has shadow block.
      * We should try to ignore them to provide more useful info.
@@ -59,7 +30,7 @@ export function createInlineValuesProvider (typescript: typeof ts | typeof tsser
     const maxStrongScopeCount = 2;
     const maxScopeCount = 4;
 
-    return function provideInlineValues(context: InlineValuesContext): TSInlineValue[] {
+    return function provideInlineValues(context: types.InlineValuesContext): types.InlineValue[] {
         const ts = typescript
 
         const { file, span, position } = context;
@@ -72,7 +43,7 @@ export function createInlineValuesProvider (typescript: typeof ts | typeof tsser
         }
 
         const scopeSet = new Set<ts.Node>(scopes);
-        const values: TSInlineValue[] = [];
+        const values: types.InlineValue[] = [];
         visitor(topLevelScope);
         return values;
 
@@ -81,7 +52,7 @@ export function createInlineValuesProvider (typescript: typeof ts | typeof tsser
                 const printer = ts.createPrinter({ removeComments: true, omitTrailingSemicolon: true });
                 const text = ts.usingSingleLineStringWriter(writer => printer.writeNode(ts.EmitHint.Unspecified, expr, expr.getSourceFile(), writer));
                 values.push({
-                    type: TSInlineValueType.EvaluatableExpression,
+                    type: types.InlineValueType.EvaluatableExpression,
                     span: ts.createTextSpanFromNode(expr),
                     expression: text
                 });
@@ -91,7 +62,7 @@ export function createInlineValuesProvider (typescript: typeof ts | typeof tsser
         function appendVariableLookup(name: ts.Identifier): void {
             if (name.end <= currentToken.pos) {
                 values.push({
-                    type: TSInlineValueType.VariableLookup,
+                    type: types.InlineValueType.VariableLookup,
                     span: ts.createTextSpanFromNode(name),
                     variableName: name.text
                 });
@@ -374,7 +345,6 @@ export function createInlineValuesProvider (typescript: typeof ts | typeof tsser
 
     function isProvideableScope(node: ts.Node): node is ProvideableScope {
         const ts = typescript;
-        assertTs(ts)
 
         if (ts.isFunctionLikeDeclaration(node) || ts.isAccessExpression(node) || ts.isClassLike(node) || ts.isForInOrOfStatement(node) || ts.isCaseOrDefaultClause(node)) {
             return true;
@@ -399,7 +369,6 @@ export function createInlineValuesProvider (typescript: typeof ts | typeof tsser
 
     function findScopes(node: ts.Node): ProvideableScope[] {
         const ts = typescript
-        assertTs(ts)
 
         const results: ProvideableScope[] = [];
         let scopeCount = 0;
@@ -425,7 +394,6 @@ export function createInlineValuesProvider (typescript: typeof ts | typeof tsser
 
     function isAssignmentLikeExpression(expr: ts.Expression): expr is AssignmentLikeExpression {
         const ts = typescript
-        assertTs(ts)
 
         return ts.isAssignmentExpression(expr) || ts.isUnaryExpressionWithWrite(expr);
     }
